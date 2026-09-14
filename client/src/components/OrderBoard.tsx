@@ -43,6 +43,8 @@ export function OrderBoard({
             <CardDescription>
               Placed {formatDateTime(order.createdAt)}
               {order.receivedAt ? ` · received ${formatDateTime(order.receivedAt)}` : ""}
+              {order.callId ? ` · call ${order.callId}` : ""}
+              {order.source ? ` · ${order.source}` : ""}
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">

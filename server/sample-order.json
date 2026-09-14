@@ -1,4 +1,7 @@
 {
+  "source": "MagickVoice",
+  "event_type": "analysis.ready",
+  "call_id": "call_123",
   "customer_name": "Aarav Sharma",
   "phone_number": "+91 9876543210",
   "delivery_address": "12 MG Road, Bengaluru, Karnataka",

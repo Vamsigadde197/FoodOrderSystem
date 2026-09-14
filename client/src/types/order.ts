@@ -34,6 +34,8 @@ export type Order = {
   paymentStatus: string
   paymentMethod?: string
   specialNotes?: string
+  callId?: string
+  source?: string
   orderStatus: OrderStatus | string
   createdAt: string
   receivedAt?: string

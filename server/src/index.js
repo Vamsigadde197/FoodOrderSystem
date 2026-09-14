@@ -88,6 +88,13 @@ function flattenVoicePayload(body) {
     ),
     order_items: firstLive(body.order_items, dimensions.order_items),
     payment_method: firstLive(body.payment_method, dimensions.payment_method),
+    call_id: firstLive(
+      body.call_id,
+      body.callId,
+      isPlainObject(body.call) ? body.call.id : undefined,
+    ),
+    event_type: firstLive(body.event_type, body.eventType),
+    source: firstLive(body.source),
   }
 }
 
@@ -107,6 +114,11 @@ function normalizeOrder(rawBody) {
 
   if (!isPlainObject(body)) {
     return { errors: ["Payload must be a JSON object."] }
+  }
+
+  const eventType = isPlaceholder(body.event_type) ? "" : asString(body.event_type)
+  if (eventType && eventType !== "analysis.ready") {
+    return { ignored: true, reason: `Ignored event_type "${eventType}".` }
   }
 
   const paymentMethod = parsePaymentMethod(body)
@@ -169,7 +181,10 @@ function normalizeOrder(rawBody) {
   return {
     order: {
       orderId:
-        asString(body.orderId || body.order_id) || `ORD-${Date.now()}`,
+        asString(body.orderId || body.order_id || body.call_id) ||
+        `ORD-${Date.now()}`,
+      callId: asString(body.call_id),
+      source: asString(body.source) || undefined,
       customer,
       items,
       subtotal,
@@ -270,6 +285,9 @@ app.get("/api/order", (_req, res) => {
 
 app.post("/webhook/orders", (req, res) => {
   const result = normalizeOrder(req.body)
+  if (result.ignored) {
+    return res.status(202).json({ ignored: true, reason: result.reason })
+  }
   if (result.errors) {
     return res.status(400).json({
       error: "Invalid order payload.",

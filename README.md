@@ -28,17 +28,21 @@ Render sets `PORT` automatically. After deploy:
 
 ## Webhook
 
-`POST /webhook/orders` accepts the voice-agent payload (`customer_name`, `order_items`, `payment_method`, …). Pizza names and sizes are looked up on the menu. Incoming `delivery_fee` and prices are ignored; the API calculates unit price, line total, subtotal, delivery fee, and total.
+`POST /webhook/orders` accepts MagickVoice `analysis.ready` payloads (`source`, `event_type`, `call_id`, `customer_name`, `order_items`, `payment_method`, …). Pizza names and sizes are looked up on the menu. Incoming prices and delivery fees are ignored; the API calculates unit price, line total, subtotal, delivery fee, and total.
 
 - Small $16.99 · Medium $19.99 · Large $22.99 (all pizzas)
 - `payment_method`: `COD` adds $2; `Online` adds $0
 - `order_items` can be a sentence like `1 Large MeatZZa, 2 Medium Pacific Veggie`
+- Other `event_type` values are ignored (`202`)
 - Unknown pizza names or missing sizes return `400`
 
 ### Sample payload
 
 ```json
 {
+  "source": "MagickVoice",
+  "event_type": "analysis.ready",
+  "call_id": "call_123",
   "customer_name": "Aarav Sharma",
   "phone_number": "+91 9876543210",
   "delivery_address": "12 MG Road, Bengaluru, Karnataka",

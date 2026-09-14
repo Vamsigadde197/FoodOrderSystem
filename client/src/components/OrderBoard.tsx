@@ -170,6 +170,13 @@ export function OrderBoard({
               <br />
               <span className="font-medium">{order.customer.phone}</span>
             </p>
+            {order.specialNotes ? (
+              <p>
+                <span className="text-muted-foreground">Special notes</span>
+                <br />
+                <span className="font-medium">{order.specialNotes}</span>
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       </div>

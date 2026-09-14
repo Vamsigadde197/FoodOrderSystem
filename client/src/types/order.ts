@@ -33,6 +33,7 @@ export type Order = {
   total: number
   paymentStatus: string
   paymentMethod?: string
+  specialNotes?: string
   orderStatus: OrderStatus | string
   createdAt: string
   receivedAt?: string

@@ -1,21 +1,9 @@
 {
-  "orderId": "ORD-2001",
-  "customer": {
-    "name": "Aarav Sharma",
-    "phone": "+91 9876543210",
-    "address": "12 MG Road, Bengaluru, Karnataka"
-  },
-  "items": [
-    {
-      "name": "MeatZZa",
-      "size": "Large",
-      "quantity": 1
-    },
-    {
-      "name": "Pacific Veggie",
-      "size": "Medium",
-      "quantity": 2
-    }
-  ],
-  "paymentMethod": "COD"
+  "customer_name": "Aarav Sharma",
+  "phone_number": "+91 9876543210",
+  "delivery_address": "12 MG Road, Bengaluru, Karnataka",
+  "order_items": "1 Large MeatZZa, 2 Medium Pacific Veggie",
+  "payment_method": "COD",
+  "delivery_fee": "",
+  "special_notes": "Ring the bell twice"
 }

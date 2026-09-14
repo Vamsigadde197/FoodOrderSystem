@@ -3,12 +3,11 @@ import express from "express"
 
 import {
   COD_DELIVERY_FEE,
-  findPizza,
+  isPlaceholder,
   menuPayload,
   money,
   parsePaymentMethod,
-  parseSize,
-  priceForSize,
+  resolveItems,
 } from "./menu.js"
 
 const PORT = Number(process.env.PORT) || 43212
@@ -63,61 +62,42 @@ function normalizeOrder(body) {
 
   const paymentMethod = parsePaymentMethod(body)
   if (!paymentMethod) {
-    errors.push("`paymentMethod` must be `COD` or `Online`.")
+    errors.push("`payment_method` must be `COD` or `Online`.")
   }
 
-  let items = []
-  if (!Array.isArray(body.items) || body.items.length === 0) {
-    errors.push("`items` must be a non-empty array of pizzas.")
-  } else {
-    items = body.items.map((item, index) => {
-      if (!isPlainObject(item)) {
-        errors.push(`items[${index}] must be an object.`)
-        return null
-      }
-      const rawName = asString(item.name || item.pizza || item.item)
-      const pizza = findPizza(rawName)
-      if (!pizza) {
-        errors.push(
-          `items[${index}].name "${rawName || "(empty)"}" is not on the menu.`,
-        )
-        return null
-      }
-      const size = parseSize(item.size)
-      if (!size) {
-        errors.push(`items[${index}].size must be Small, Medium, or Large.`)
-        return null
-      }
-      const quantity = asNumber(item.quantity)
-      if (item.quantity !== undefined && item.quantity !== null && quantity === null) {
-        errors.push(`items[${index}].quantity must be a number.`)
-        return null
-      }
-      const qty = quantity && quantity > 0 ? quantity : 1
-      const unitPrice = priceForSize(size)
-      return {
-        name: pizza.name,
-        size,
-        calories: pizza.calories[size],
-        quantity: qty,
-        price: unitPrice,
-        lineTotal: money(qty * unitPrice),
-      }
-    }).filter(Boolean)
+  const items = resolveItems(body, errors)
+
+  const nested = isPlainObject(body.customer) ? body.customer : {}
+  const customer = {
+    name:
+      asString(body.customer_name) ||
+      asString(nested.name) ||
+      "Guest",
+    phone:
+      asString(body.phone_number) ||
+      asString(nested.phone) ||
+      "—",
+    address:
+      asString(body.delivery_address) ||
+      asString(nested.address) ||
+      "—",
+  }
+  if (isPlaceholder(body.customer_name) && !asString(nested.name)) {
+    customer.name = "Guest"
+  }
+  if (isPlaceholder(body.phone_number) && !asString(nested.phone)) {
+    customer.phone = "—"
+  }
+  if (isPlaceholder(body.delivery_address) && !asString(nested.address)) {
+    customer.address = "—"
   }
 
-  let customer = { name: "Guest", phone: "—", address: "—" }
-  if (body.customer !== undefined && body.customer !== null) {
-    if (!isPlainObject(body.customer)) {
-      errors.push("`customer` must be an object.")
-    } else {
-      customer = {
-        name: asString(body.customer.name, "Guest") || "Guest",
-        phone: asString(body.customer.phone, "—") || "—",
-        address: asString(body.customer.address, "—") || "—",
-      }
-    }
-  }
+  const specialNotes =
+    asString(body.special_notes) ||
+    asString(body.specialNotes) ||
+    asString(body.notes) ||
+    ""
+  const notes = isPlaceholder(specialNotes) ? "" : specialNotes
 
   if (errors.length > 0) {
     return { errors }
@@ -127,19 +107,20 @@ function normalizeOrder(body) {
   const deliveryFee = paymentMethod === "COD" ? COD_DELIVERY_FEE : 0
   const total = money(subtotal + deliveryFee)
 
-  let paymentStatus = asString(body.paymentStatus)
-  if (!paymentStatus) {
+  let paymentStatus = asString(body.paymentStatus || body.payment_status)
+  if (!paymentStatus || isPlaceholder(paymentStatus)) {
     paymentStatus = paymentMethod === "Online" ? "Paid" : "COD"
   }
 
-  let orderStatus = asString(body.orderStatus, "Pending") || "Pending"
+  let orderStatus = asString(body.orderStatus || body.order_status, "Pending") || "Pending"
   if (!STATUSES.includes(orderStatus)) {
     orderStatus = "Pending"
   }
 
   return {
     order: {
-      orderId: asString(body.orderId) || `ORD-${Date.now()}`,
+      orderId:
+        asString(body.orderId || body.order_id) || `ORD-${Date.now()}`,
       customer,
       items,
       subtotal,
@@ -148,7 +129,8 @@ function normalizeOrder(body) {
       paymentMethod,
       paymentStatus,
       orderStatus,
-      createdAt: asString(body.createdAt) || new Date().toISOString(),
+      specialNotes: notes,
+      createdAt: asString(body.createdAt || body.created_at) || new Date().toISOString(),
       receivedAt: new Date().toISOString(),
     },
   }

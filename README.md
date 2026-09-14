@@ -18,27 +18,24 @@ The Vite dev server proxies `/api` and `/webhook` to the API, so the UI and curl
 
 ## Webhook
 
-`POST /webhook/orders` accepts JSON. Pizza names and sizes are looked up on the menu. The API **ignores incoming prices** and calculates unit price, line total, subtotal, delivery fee, and total.
+`POST /webhook/orders` accepts the voice-agent payload (`customer_name`, `order_items`, `payment_method`, …). Pizza names and sizes are looked up on the menu. Incoming `delivery_fee` and prices are ignored; the API calculates unit price, line total, subtotal, delivery fee, and total.
 
 - Small $16.99 · Medium $19.99 · Large $22.99 (all pizzas)
-- `paymentMethod`: `COD` adds a $2 delivery fee; `Online` adds $0
+- `payment_method`: `COD` adds $2; `Online` adds $0
+- `order_items` can be a sentence like `1 Large MeatZZa, 2 Medium Pacific Veggie`
 - Unknown pizza names or missing sizes return `400`
 
 ### Sample payload
 
 ```json
 {
-  "orderId": "ORD-2001",
-  "customer": {
-    "name": "Aarav Sharma",
-    "phone": "+91 9876543210",
-    "address": "12 MG Road, Bengaluru, Karnataka"
-  },
-  "items": [
-    { "name": "MeatZZa", "size": "Large", "quantity": 1 },
-    { "name": "Pacific Veggie", "size": "Medium", "quantity": 2 }
-  ],
-  "paymentMethod": "COD"
+  "customer_name": "Aarav Sharma",
+  "phone_number": "+91 9876543210",
+  "delivery_address": "12 MG Road, Bengaluru, Karnataka",
+  "order_items": "1 Large MeatZZa, 2 Medium Pacific Veggie",
+  "payment_method": "COD",
+  "delivery_fee": "",
+  "special_notes": "Ring the bell twice"
 }
 ```
 

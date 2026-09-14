@@ -1,6 +1,16 @@
 import cors from "cors"
 import express from "express"
 
+import {
+  COD_DELIVERY_FEE,
+  findPizza,
+  menuPayload,
+  money,
+  parsePaymentMethod,
+  parseSize,
+  priceForSize,
+} from "./menu.js"
+
 const PORT = Number(process.env.PORT) || 43212
 const STATUSES = [
   "Pending",
@@ -51,29 +61,47 @@ function normalizeOrder(body) {
     return { errors: ["Payload must be a JSON object."] }
   }
 
+  const paymentMethod = parsePaymentMethod(body)
+  if (!paymentMethod) {
+    errors.push("`paymentMethod` must be `COD` or `Online`.")
+  }
+
   let items = []
-  if (body.items === undefined || body.items === null) {
-    items = []
-  } else if (!Array.isArray(body.items)) {
-    errors.push("`items` must be an array.")
+  if (!Array.isArray(body.items) || body.items.length === 0) {
+    errors.push("`items` must be a non-empty array of pizzas.")
   } else {
     items = body.items.map((item, index) => {
       if (!isPlainObject(item)) {
         errors.push(`items[${index}] must be an object.`)
         return null
       }
+      const rawName = asString(item.name || item.pizza || item.item)
+      const pizza = findPizza(rawName)
+      if (!pizza) {
+        errors.push(
+          `items[${index}].name "${rawName || "(empty)"}" is not on the menu.`,
+        )
+        return null
+      }
+      const size = parseSize(item.size)
+      if (!size) {
+        errors.push(`items[${index}].size must be Small, Medium, or Large.`)
+        return null
+      }
       const quantity = asNumber(item.quantity)
-      const price = asNumber(item.price)
       if (item.quantity !== undefined && item.quantity !== null && quantity === null) {
         errors.push(`items[${index}].quantity must be a number.`)
+        return null
       }
-      if (item.price !== undefined && item.price !== null && price === null) {
-        errors.push(`items[${index}].price must be a number.`)
-      }
+      const qty = quantity && quantity > 0 ? quantity : 1
+      const unitPrice = priceForSize(size)
       return {
-        name: asString(item.name, "Unnamed item") || "Unnamed item",
-        quantity: quantity ?? 1,
-        price: price ?? 0,
+        name: pizza.name,
+        size,
+        calories: pizza.calories[size],
+        quantity: qty,
+        price: unitPrice,
+        lineTotal: money(qty * unitPrice),
       }
     }).filter(Boolean)
   }
@@ -95,10 +123,15 @@ function normalizeOrder(body) {
     return { errors }
   }
 
-  const computedSubtotal = items.reduce((sum, item) => sum + item.quantity * item.price, 0)
-  const subtotal = asNumber(body.subtotal) ?? computedSubtotal
-  const deliveryFee = asNumber(body.deliveryFee) ?? 0
-  const total = asNumber(body.total) ?? subtotal + deliveryFee
+  const subtotal = money(items.reduce((sum, item) => sum + item.lineTotal, 0))
+  const deliveryFee = paymentMethod === "COD" ? COD_DELIVERY_FEE : 0
+  const total = money(subtotal + deliveryFee)
+
+  let paymentStatus = asString(body.paymentStatus)
+  if (!paymentStatus) {
+    paymentStatus = paymentMethod === "Online" ? "Paid" : "COD"
+  }
+
   let orderStatus = asString(body.orderStatus, "Pending") || "Pending"
   if (!STATUSES.includes(orderStatus)) {
     orderStatus = "Pending"
@@ -112,7 +145,8 @@ function normalizeOrder(body) {
       subtotal,
       deliveryFee,
       total,
-      paymentStatus: asString(body.paymentStatus, "Pending") || "Pending",
+      paymentMethod,
+      paymentStatus,
       orderStatus,
       createdAt: asString(body.createdAt) || new Date().toISOString(),
       receivedAt: new Date().toISOString(),
@@ -136,6 +170,10 @@ app.use((error, _req, res, next) => {
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true })
+})
+
+app.get("/api/menu", (_req, res) => {
+  res.json(menuPayload())
 })
 
 app.get("/api/orders", (_req, res) => {

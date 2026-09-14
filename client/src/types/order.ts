@@ -11,8 +11,11 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
 export type OrderItem = {
   name: string
+  size?: string
+  calories?: number
   quantity: number
   price: number
+  lineTotal?: number
 }
 
 export type Customer = {
@@ -29,6 +32,7 @@ export type Order = {
   deliveryFee: number
   total: number
   paymentStatus: string
+  paymentMethod?: string
   orderStatus: OrderStatus | string
   createdAt: string
   receivedAt?: string

@@ -1,4 +1,4 @@
-import { ClipboardList, RefreshCw, UtensilsCrossed } from "lucide-react"
+import { BookOpen, ClipboardList, RefreshCw, UtensilsCrossed } from "lucide-react"
 import type { ReactNode } from "react"
 import { NavLink } from "react-router-dom"
 
@@ -42,6 +42,19 @@ export function AppShell({ title, subtitle, onRefresh, children }: AppShellProps
             >
               <ClipboardList className="size-4" />
               Orders
+            </NavLink>
+            <NavLink
+              to="/menu"
+              className={({ isActive }) =>
+                `inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border bg-card hover:bg-accent"
+                }`
+              }
+            >
+              <BookOpen className="size-4" />
+              Menu
             </NavLink>
             {onRefresh ? (
               <Button variant="outline" onClick={onRefresh}>

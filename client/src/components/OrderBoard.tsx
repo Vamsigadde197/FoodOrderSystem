@@ -48,7 +48,8 @@ export function OrderBoard({
           <div className="flex flex-wrap gap-2">
             <Badge variant={statusBadgeVariant(order.orderStatus)}>{order.orderStatus}</Badge>
             <Badge variant={paymentBadgeVariant(order.paymentStatus)}>
-              Payment {order.paymentStatus}
+              {order.paymentMethod ? `${order.paymentMethod} · ` : ""}
+              {order.paymentStatus}
             </Badge>
           </div>
         </CardHeader>
@@ -74,6 +75,7 @@ export function OrderBoard({
                   <TableHeader className="bg-muted/60">
                     <TableRow>
                       <TableHead>Item</TableHead>
+                      <TableHead>Size</TableHead>
                       <TableHead className="text-right">Qty</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                       <TableHead className="text-right">Line total</TableHead>
@@ -81,12 +83,20 @@ export function OrderBoard({
                   </TableHeader>
                   <TableBody>
                     {order.items.map((item, index) => (
-                      <TableRow key={`${item.name}-${index}`}>
-                        <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableRow key={`${item.name}-${item.size}-${index}`}>
+                        <TableCell className="font-medium">
+                          {item.name}
+                          {item.calories ? (
+                            <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                              {item.calories} cal
+                            </span>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>{item.size || "—"}</TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
                         <TableCell className="text-right">{formatUsd(item.price)}</TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatUsd(item.quantity * item.price)}
+                          {formatUsd(item.lineTotal ?? item.quantity * item.price)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -98,7 +108,16 @@ export function OrderBoard({
 
           <div className="ml-auto w-full max-w-sm space-y-2 rounded-xl bg-muted/70 p-4">
             <TotalRow label="Subtotal" value={formatUsd(order.subtotal)} />
-            <TotalRow label="Delivery fee" value={formatUsd(order.deliveryFee)} />
+            <TotalRow
+              label={
+                order.paymentMethod === "COD"
+                  ? "Delivery fee (COD)"
+                  : order.paymentMethod === "Online"
+                    ? "Delivery fee (online)"
+                    : "Delivery fee"
+              }
+              value={formatUsd(order.deliveryFee)}
+            />
             <div className="flex items-center justify-between border-t border-border pt-2 font-heading text-lg">
               <span>Total</span>
               <span>{formatUsd(order.total)}</span>

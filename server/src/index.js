@@ -1,5 +1,8 @@
 import cors from "cors"
 import express from "express"
+import fs from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 import {
   COD_DELIVERY_FEE,
@@ -11,6 +14,10 @@ import {
 } from "./menu.js"
 
 const PORT = Number(process.env.PORT) || 43212
+const clientDist = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../client/dist",
+)
 const STATUSES = [
   "Pending",
   "Confirmed",
@@ -225,6 +232,25 @@ app.patch("/api/order/status", (req, res) => {
   ordersById.set(order.orderId, order)
   return res.json({ order })
 })
+
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist))
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next()
+    if (req.path.startsWith("/api") || req.path.startsWith("/webhook")) return next()
+    return res.sendFile(path.join(clientDist, "index.html"))
+  })
+} else {
+  app.get("/", (_req, res) => {
+    res.json({
+      ok: true,
+      health: "/api/health",
+      orders: "/api/orders",
+      menu: "/api/menu",
+      webhook: "POST /webhook/orders",
+    })
+  })
+}
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Not found." })

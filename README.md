@@ -21,9 +21,10 @@ This is a Node web service from the **repo root** (do not set Root Directory to 
 - **Build command:** `npm install && npm run build`
 - **Start command:** `npm start`
 
-Render sets `PORT` automatically. The webhook will be:
+Render sets `PORT` automatically. After deploy:
 
-`https://<your-service>.onrender.com/webhook/orders`
+- Dashboard: `https://<your-service>.onrender.com`
+- Webhook: `https://<your-service>.onrender.com/webhook/orders`
 
 ## Webhook
 

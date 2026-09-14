@@ -60,8 +60,50 @@ function newestOrder() {
   return listOrders()[0] ?? null
 }
 
-function normalizeOrder(body) {
+function firstLive(...values) {
+  for (const value of values) {
+    if (!isPlaceholder(value)) return value
+  }
+  return undefined
+}
+
+function flattenVoicePayload(body) {
+  if (!isPlainObject(body)) return body
+  const dimensions = isPlainObject(body.analysis?.dimensions)
+    ? body.analysis.dimensions
+    : {}
+  const callee = isPlainObject(body.callee) ? body.callee : {}
+  return {
+    ...dimensions,
+    ...body,
+    customer_name: firstLive(body.customer_name, dimensions.customer_name),
+    phone_number: firstLive(
+      body.phone_number,
+      callee.phone,
+      dimensions.phone_number,
+    ),
+    delivery_address: firstLive(
+      body.delivery_address,
+      dimensions.delivery_address,
+    ),
+    order_items: firstLive(body.order_items, dimensions.order_items),
+    payment_method: firstLive(body.payment_method, dimensions.payment_method),
+  }
+}
+
+function parseJsonBody(raw) {
+  const text = String(raw || "").trim()
+  if (!text) return {}
+  try {
+    return JSON.parse(text)
+  } catch {
+    return JSON.parse(text.replace(/,(\s*[}\]])/g, "$1"))
+  }
+}
+
+function normalizeOrder(rawBody) {
   const errors = []
+  const body = flattenVoicePayload(rawBody)
 
   if (!isPlainObject(body)) {
     return { errors: ["Payload must be a JSON object."] }
@@ -145,7 +187,32 @@ function normalizeOrder(body) {
 
 const app = express()
 app.use(cors())
-app.use(express.json({ limit: "100kb" }))
+app.use((req, res, next) => {
+  if (req.method === "GET" || req.method === "HEAD") return next()
+  const type = req.headers["content-type"] || ""
+  if (!type.includes("json")) return next()
+
+  const chunks = []
+  let size = 0
+  req.on("data", (chunk) => {
+    size += chunk.length
+    if (size > 100 * 1024) {
+      req.destroy()
+      return next(Object.assign(new Error("Payload too large."), { status: 413 }))
+    }
+    chunks.push(chunk)
+  })
+  req.on("end", () => {
+    const raw = Buffer.concat(chunks).toString("utf8")
+    try {
+      req.body = parseJsonBody(raw)
+      return next()
+    } catch (error) {
+      error.status = 400
+      return next(error)
+    }
+  })
+})
 
 app.use((error, _req, res, next) => {
   if (error instanceof SyntaxError) {

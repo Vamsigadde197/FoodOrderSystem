@@ -43,9 +43,7 @@ Render sets `PORT` automatically. After deploy:
   "phone_number": "+91 9876543210",
   "delivery_address": "12 MG Road, Bengaluru, Karnataka",
   "order_items": "1 Large MeatZZa, 2 Medium Pacific Veggie",
-  "payment_method": "COD",
-  "delivery_fee": "",
-  "special_notes": "Ring the bell twice"
+  "payment_method": "COD"
 }
 ```
 

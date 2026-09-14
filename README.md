@@ -14,7 +14,16 @@ npm run dev
 - Dashboard: http://127.0.0.1:43211
 - API: http://127.0.0.1:43212
 
-The Vite dev server proxies `/api` and `/webhook` to the API, so the UI and curl examples can use either port.
+## Deploy on Render
+
+This is a Node web service from the **repo root** (do not set Root Directory to `server`).
+
+- **Build command:** `npm install && npm run build`
+- **Start command:** `npm start`
+
+Render sets `PORT` automatically. The webhook will be:
+
+`https://<your-service>.onrender.com/webhook/orders`
 
 ## Webhook
 

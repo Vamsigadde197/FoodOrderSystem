@@ -6,7 +6,15 @@
     "dev": "concurrently -n api,web -c green,magenta \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "dev:server": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",
-    "start": "npm run start --prefix server"
+    "start": "node server/src/index.js",
+    "build": "npm install --prefix server --omit=dev"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

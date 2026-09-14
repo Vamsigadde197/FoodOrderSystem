@@ -11,7 +11,7 @@ const STATUSES = [
   "Cancelled",
 ]
 
-let latestOrder = null
+const ordersById = new Map()
 
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -30,6 +30,18 @@ function asNumber(value) {
     return Number(value)
   }
   return null
+}
+
+function listOrders() {
+  return Array.from(ordersById.values()).sort((a, b) => {
+    const aTime = new Date(a.receivedAt || a.createdAt).getTime()
+    const bTime = new Date(b.receivedAt || b.createdAt).getTime()
+    return bTime - aTime
+  })
+}
+
+function newestOrder() {
+  return listOrders()[0] ?? null
 }
 
 function normalizeOrder(body) {
@@ -126,8 +138,40 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true })
 })
 
+app.get("/api/orders", (_req, res) => {
+  res.json({ orders: listOrders() })
+})
+
+app.get("/api/orders/:orderId", (req, res) => {
+  const order = ordersById.get(req.params.orderId)
+  if (!order) {
+    return res.status(404).json({ error: "Order not found." })
+  }
+  return res.json({ order })
+})
+
+app.patch("/api/orders/:orderId/status", (req, res) => {
+  const existing = ordersById.get(req.params.orderId)
+  if (!existing) {
+    return res.status(404).json({ error: "Order not found." })
+  }
+  if (!isPlainObject(req.body)) {
+    return res.status(400).json({ error: "Payload must be a JSON object." })
+  }
+  const nextStatus = asString(req.body.orderStatus)
+  if (!STATUSES.includes(nextStatus)) {
+    return res.status(400).json({
+      error: "Invalid order status.",
+      details: [`Use one of: ${STATUSES.join(", ")}`],
+    })
+  }
+  const order = { ...existing, orderStatus: nextStatus }
+  ordersById.set(order.orderId, order)
+  return res.json({ order })
+})
+
 app.get("/api/order", (_req, res) => {
-  res.json({ order: latestOrder })
+  res.json({ order: newestOrder() })
 })
 
 app.post("/webhook/orders", (req, res) => {
@@ -138,12 +182,13 @@ app.post("/webhook/orders", (req, res) => {
       details: result.errors,
     })
   }
-  latestOrder = result.order
-  return res.status(201).json({ order: latestOrder })
+  ordersById.set(result.order.orderId, result.order)
+  return res.status(201).json({ order: result.order })
 })
 
 app.patch("/api/order/status", (req, res) => {
-  if (!latestOrder) {
+  const existing = newestOrder()
+  if (!existing) {
     return res.status(404).json({ error: "No order has been received yet." })
   }
   if (!isPlainObject(req.body)) {
@@ -156,8 +201,9 @@ app.patch("/api/order/status", (req, res) => {
       details: [`Use one of: ${STATUSES.join(", ")}`],
     })
   }
-  latestOrder = { ...latestOrder, orderStatus: nextStatus }
-  return res.json({ order: latestOrder })
+  const order = { ...existing, orderStatus: nextStatus }
+  ordersById.set(order.orderId, order)
+  return res.json({ order })
 })
 
 app.use((_req, res) => {

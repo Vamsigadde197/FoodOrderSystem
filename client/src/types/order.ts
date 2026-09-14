@@ -38,6 +38,10 @@ export type OrderResponse = {
   order: Order | null
 }
 
+export type OrdersResponse = {
+  orders: Order[]
+}
+
 export type ApiError = {
   error: string
   details?: string[]

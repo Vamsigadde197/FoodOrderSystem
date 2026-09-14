@@ -1,0 +1,26 @@
+{
+  "orderId": "ORD-1001",
+  "customer": {
+    "name": "Aarav Sharma",
+    "phone": "+91 9876543210",
+    "address": "12 MG Road, Bengaluru, Karnataka"
+  },
+  "items": [
+    {
+      "name": "Margherita Pizza",
+      "quantity": 1,
+      "price": 399
+    },
+    {
+      "name": "Garlic Bread",
+      "quantity": 2,
+      "price": 129
+    }
+  ],
+  "subtotal": 657,
+  "deliveryFee": 40,
+  "total": 697,
+  "paymentStatus": "Paid",
+  "orderStatus": "Pending",
+  "createdAt": "2026-09-14T10:30:00Z"
+}

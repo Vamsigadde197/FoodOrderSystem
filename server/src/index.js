@@ -12,6 +12,7 @@ import {
   parsePaymentMethod,
   resolveItems,
 } from "./menu.js"
+import { openStore } from "./store.js"
 
 const PORT = Number(process.env.PORT) || 43212
 const clientDist = path.resolve(
@@ -28,6 +29,17 @@ const STATUSES = [
 ]
 
 const ordersById = new Map()
+let store = {
+  async loadAll() {
+    return []
+  },
+  async upsert() {},
+}
+
+async function persist(order) {
+  ordersById.set(order.orderId, order)
+  await store.upsert(order)
+}
 
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -259,7 +271,7 @@ app.get("/api/orders/:orderId", (req, res) => {
   return res.json({ order })
 })
 
-app.patch("/api/orders/:orderId/status", (req, res) => {
+app.patch("/api/orders/:orderId/status", async (req, res) => {
   const existing = ordersById.get(req.params.orderId)
   if (!existing) {
     return res.status(404).json({ error: "Order not found." })
@@ -275,7 +287,7 @@ app.patch("/api/orders/:orderId/status", (req, res) => {
     })
   }
   const order = { ...existing, orderStatus: nextStatus }
-  ordersById.set(order.orderId, order)
+  await persist(order)
   return res.json({ order })
 })
 
@@ -283,7 +295,7 @@ app.get("/api/order", (_req, res) => {
   res.json({ order: newestOrder() })
 })
 
-app.post("/webhook/orders", (req, res) => {
+app.post("/webhook/orders", async (req, res) => {
   const result = normalizeOrder(req.body)
   if (result.ignored) {
     return res.status(202).json({ ignored: true, reason: result.reason })
@@ -294,11 +306,11 @@ app.post("/webhook/orders", (req, res) => {
       details: result.errors,
     })
   }
-  ordersById.set(result.order.orderId, result.order)
+  await persist(result.order)
   return res.status(201).json({ order: result.order })
 })
 
-app.patch("/api/order/status", (req, res) => {
+app.patch("/api/order/status", async (req, res) => {
   const existing = newestOrder()
   if (!existing) {
     return res.status(404).json({ error: "No order has been received yet." })
@@ -314,7 +326,7 @@ app.patch("/api/order/status", (req, res) => {
     })
   }
   const order = { ...existing, orderStatus: nextStatus }
-  ordersById.set(order.orderId, order)
+  await persist(order)
   return res.json({ order })
 })
 
@@ -341,6 +353,19 @@ app.use((_req, res) => {
   res.status(404).json({ error: "Not found." })
 })
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Food order API listening on http://127.0.0.1:${PORT}`)
+async function start() {
+  store = await openStore()
+  const loaded = await store.loadAll()
+  for (const order of loaded) {
+    if (order?.orderId) ordersById.set(order.orderId, order)
+  }
+  console.log(`Loaded ${ordersById.size} persisted order(s)`)
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Food order API listening on http://127.0.0.1:${PORT}`)
+  })
+}
+
+start().catch((error) => {
+  console.error("Failed to start:", error)
+  process.exit(1)
 })

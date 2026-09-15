@@ -1,6 +1,6 @@
 # Food Order Desk
 
-A live kitchen board for incoming food orders. An Express webhook stores every order in memory. Open **Orders** to see the full list, then click a ticket to view the kitchen board. Amounts are shown in USD. The list and detail views poll every 2 seconds so new webhook orders appear without a refresh.
+A live kitchen board for incoming food orders. An Express webhook stores every order in PostgreSQL when `DATABASE_URL` is set, or in `data/orders.json` locally. Open **Orders** to see the full list, then click a ticket to view the kitchen board. Amounts are shown in USD. The list and detail views poll every 2 seconds so new webhook orders appear without a refresh.
 
 ## Run locally
 
@@ -25,6 +25,8 @@ Render sets `PORT` automatically. After deploy:
 
 - Dashboard: `https://<your-service>.onrender.com`
 - Webhook: `https://<your-service>.onrender.com/webhook/orders`
+
+**Keep orders overnight:** Render restarts wipe RAM and the local disk. Create a **PostgreSQL** database on Render, then **Link** it to this web service so `DATABASE_URL` is set. After that, tickets survive restarts.
 
 ## Webhook
 
@@ -107,4 +109,4 @@ Allowed statuses: Pending, Confirmed, Preparing, Out for Delivery, Delivered, Ca
 
 ## Notes
 
-Orders are stored in memory only, so a server restart clears the board. Amounts are shown in USD.
+Orders persist in `data/orders.json` locally, or in PostgreSQL when `DATABASE_URL` is set. Amounts are shown in USD.
